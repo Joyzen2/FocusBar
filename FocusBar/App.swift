@@ -89,7 +89,8 @@ class FBStatusItem: NSObject, NSApplicationDelegate {
 
     func setIcon(name: NSImage.Name) {
         if let image = NSImage(named: name) {
-            image.size = NSSize(width: 18, height: 18)
+            image.size = NSSize(width: 20, height: 20)
+            image.alignmentRect = NSRect(x: 0, y: 2, width: 20, height: 20)
             statusBarItem?.button?.image = image
         }
     }
