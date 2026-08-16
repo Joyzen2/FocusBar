@@ -7,6 +7,7 @@ class FBTimer: ObservableObject {
     @AppStorage("showTimerInMenuBar") var showTimerInMenuBar = true
 
     @Published var timeLeftString: String = ""
+    @Published var remainingSeconds: Double = 0
 
     private let notificationCenter = FBNotificationCenter()
     private var timer: DispatchSourceTimer?
@@ -51,8 +52,10 @@ class FBTimer: ObservableObject {
     func updateTimeLeft() {
         if isRunning, let end = finishTime, end > Date() {
             timeLeftString = formatter.string(from: Date(), to: end) ?? "--:--"
+            remainingSeconds = max(0, end.timeIntervalSinceNow)
         } else {
             timeLeftString = formatter.string(from: TimeInterval(focusLength * 60)) ?? "--:--"
+            remainingSeconds = 0
         }
         if isRunning, showTimerInMenuBar {
             FBStatusItem.shared.setTitle(title: timeLeftString)
