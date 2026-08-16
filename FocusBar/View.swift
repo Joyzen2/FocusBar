@@ -1,4 +1,34 @@
 import SwiftUI
+import AVFoundation
+
+/// 钢琴音：播放真实采样 wav（大调音阶 C3 起，25 个音）
+final class PianoSynth {
+    private let noteNames = [
+        "C3","D3","E3","F3","G3","A3","B3",
+        "C4","D4","E4","F4","G4","A4","B4",
+        "C5","D5","E5","F5","G5","A5","B5",
+        "C6","D6","E6","F6"
+    ]
+    private var players: [AVAudioPlayer] = []
+
+    init() {
+        for name in noteNames {
+            if let url = Bundle.main.url(forResource: name, withExtension: "wav", subdirectory: "piano"),
+               let p = try? AVAudioPlayer(contentsOf: url) {
+                p.prepareToPlay()
+                players.append(p)
+            }
+        }
+    }
+
+    func play(barIndex: Int, volume: Float) {
+        guard players.count == noteNames.count else { return }
+        let p = players[barIndex % noteNames.count]
+        p.volume = volume
+        p.currentTime = 0
+        p.play()
+    }
+}
 
 struct FBPopoverView: View {
     @ObservedObject var timer = FBTimer()
@@ -92,9 +122,12 @@ final class BarAnimator: ObservableObject {
     func x(forIndex i: Int) -> CGFloat { (CGFloat(i) + 0.5) * span }
 
     func minute(atX x: CGFloat) -> Int {
+        return barMinutes[index(atX: x)]
+    }
+
+    func index(atX x: CGFloat) -> Int {
         let idx = Int(((x / span) - 0.5).rounded())
-        let i = max(0, min(barMinutes.count - 1, idx))
-        return barMinutes[i]
+        return max(0, min(barMinutes.count - 1, idx))
     }
 
     /// 唯一红线：剩余时间所在 5 分钟档位的右端（向上取整）
@@ -178,6 +211,8 @@ struct FocusDurationPicker: View {
     @StateObject private var animator = BarAnimator()
     @State private var isHovering = false
     @State private var hoverMinute = 0
+    @State private var piano = PianoSynth()
+    @State private var lastPlayedIdx = -1
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -209,9 +244,15 @@ struct FocusDurationPicker: View {
                     isHovering = true
                     animator.hoverX = location.x
                     hoverMinute = animator.minute(atX: location.x)
+                    let idx = animator.index(atX: location.x)
+                    if idx != lastPlayedIdx {
+                        lastPlayedIdx = idx
+                        piano.play(barIndex: idx, volume: 0.1)
+                    }
                 case .ended:
                     isHovering = false
                     animator.hoverX = nil
+                    lastPlayedIdx = -1
                 }
             }
             .gesture(

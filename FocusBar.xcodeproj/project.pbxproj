@@ -17,6 +17,7 @@
 		FB0000000000000000000005 /* focus-start-short.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000002 /* focus-start-short.mp3 */; };
 		FB0000000000000000000006 /* focus-finish.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000003 /* focus-finish.mp3 */; };
 		FB0000000000000000000008 /* focus-interrupt.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000007 /* focus-interrupt.mp3 */; };
+		FB000000000000000000000A /* piano in Resources */ = {isa = PBXBuildFile; fileRef = FB0000000000000000000009 /* piano */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +35,7 @@
 		FB0000000000000000000002 /* focus-start-short.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "focus-start-short.mp3"; sourceTree = "<group>"; };
 		FB0000000000000000000003 /* focus-finish.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "focus-finish.mp3"; sourceTree = "<group>"; };
 		FB0000000000000000000007 /* focus-interrupt.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "focus-interrupt.mp3"; sourceTree = "<group>"; };
+		FB0000000000000000000009 /* piano */ = {isa = PBXFileReference; lastKnownFileType = folder; path = piano; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,6 +79,7 @@
 				FB0000000000000000000002 /* focus-start-short.mp3 */,
 				FB0000000000000000000003 /* focus-finish.mp3 */,
 				FB0000000000000000000007 /* focus-interrupt.mp3 */,
+				FB0000000000000000000009 /* piano */,
 				8AA54347293094AB002A47FC /* Localizable.strings */,
 			);
 			path = FocusBar;
@@ -159,6 +162,7 @@
 				FB0000000000000000000005 /* focus-start-short.mp3 in Resources */,
 				FB0000000000000000000006 /* focus-finish.mp3 in Resources */,
 				FB0000000000000000000008 /* focus-interrupt.mp3 in Resources */,
+				FB000000000000000000000A /* piano in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

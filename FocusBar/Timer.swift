@@ -31,10 +31,12 @@ class FBTimer: ObservableObject {
     func start() {
         guard !isRunning else { return }
         let length = max(1, focusLength)
-        // 开始提示音：>=60 分钟用声音 1，<60 分钟用声音 2
-        playSound(named: length >= 60
-                  ? "focus-start-long"
-                  : "focus-start-short")
+        // 开始提示音：>=60 分钟用声音 1（0.76），<60 分钟用声音 2（0.5）
+        if length >= 60 {
+            playSound(named: "focus-start-long", volume: 0.76)
+        } else {
+            playSound(named: "focus-start-short", volume: 0.5)
+        }
         finishTime = Date().addingTimeInterval(TimeInterval(length * 60))
         startDispatchTimer()
         FBStatusItem.shared.setIcon(name: .running)
@@ -48,7 +50,7 @@ class FBTimer: ObservableObject {
         FBStatusItem.shared.setIcon(name: .idle)
         updateTimeLeft()
         // 打断提示音：暂停 / 打断 / 重置的瞬间播放
-        playSound(named: "focus-interrupt")
+        playSound(named: "focus-interrupt", volume: 0.83)
     }
 
     func updateTimeLeft() {
@@ -107,20 +109,21 @@ class FBTimer: ObservableObject {
         FBStatusItem.shared.setIcon(name: .idle)
         updateTimeLeft()
         // 结束提示音：声音 3
-        playSound(named: "focus-finish")
+        playSound(named: "focus-finish", volume: 0.65)
         notificationCenter.send(
             title: NSLocalizedString("FBTimer.finish.title", comment: "Focus finished title"),
             body: NSLocalizedString("FBTimer.finish.body", comment: "Focus finished body")
         )
     }
 
-    private func playSound(named name: String) {
+    private func playSound(named name: String, volume: Float = 1.0) {
         guard let url = Bundle.main.url(forResource: name, withExtension: "mp3") else {
             print("sound file not found: \(name)")
             return
         }
         do {
             let player = try AVAudioPlayer(contentsOf: url)
+            player.volume = volume
             player.prepareToPlay()
             soundPlayer = player
             player.play()
