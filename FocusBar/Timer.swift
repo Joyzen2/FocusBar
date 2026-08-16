@@ -47,6 +47,8 @@ class FBTimer: ObservableObject {
         finishTime = nil
         FBStatusItem.shared.setIcon(name: .idle)
         updateTimeLeft()
+        // 打断提示音：暂停 / 打断 / 重置的瞬间播放
+        playSound(named: "focus-interrupt")
     }
 
     func updateTimeLeft() {

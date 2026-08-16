@@ -88,7 +88,10 @@ class FBStatusItem: NSObject, NSApplicationDelegate {
     }
 
     func setIcon(name: NSImage.Name) {
-        statusBarItem?.button?.image = NSImage(named: name)
+        if let image = NSImage(named: name) {
+            image.size = NSSize(width: 18, height: 18)
+            statusBarItem?.button?.image = image
+        }
     }
 
     func showPopover(_: AnyObject?) {
