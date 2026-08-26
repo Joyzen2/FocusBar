@@ -1,8 +1,5 @@
-"FBPopoverView.start.label" = "开始";
-"FBPopoverView.stop.label" = "停止";
 "FBPopoverView.min" = "分";
 "FBPopoverView.focusLength.label" = "专注时长";
-"FBPopoverView.about.label" = "关于";
 "FBPopoverView.quit.label" = "退出";
 "FBTimer.finish.title" = "专注结束";
 "FBTimer.finish.body" = "时间到了，休息一下吧！";

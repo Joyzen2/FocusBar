@@ -1,8 +1,5 @@
-"FBPopoverView.start.label" = "시작";
-"FBPopoverView.stop.label" = "중지";
 "FBPopoverView.min" = "분";
 "FBPopoverView.focusLength.label" = "집중 시간";
-"FBPopoverView.about.label" = "정보";
 "FBPopoverView.quit.label" = "종료";
 "FBTimer.finish.title" = "집중 종료";
 "FBTimer.finish.body" = "시간이 끝났습니다. 잠시 쉬세요!";

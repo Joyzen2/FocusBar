@@ -1,8 +1,5 @@
-"FBPopoverView.start.label" = "Start";
-"FBPopoverView.stop.label" = "Stop";
 "FBPopoverView.min" = "min";
 "FBPopoverView.focusLength.label" = "Focus length";
-"FBPopoverView.about.label" = "About";
 "FBPopoverView.quit.label" = "Quit";
 "FBTimer.finish.title" = "Focus finished";
 "FBTimer.finish.body" = "Time's up. Take a break!";
