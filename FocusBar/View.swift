@@ -86,7 +86,8 @@ final class BarAnimator: ObservableObject {
     /// 下落阻尼比：< 1 落到底时有轻微回弹
     let zetaFall: CGFloat = 0.6
 
-    var width: CGFloat = 1
+    /// popover 内容宽度（280 - padding 12*2）。给真实默认值，让首次打开的快进也能算对行波相位
+    var width: CGFloat = 256
     var hoverX: CGFloat?
     var isRunning = false
     var remainingSeconds: Double = 0
@@ -107,6 +108,21 @@ final class BarAnimator: ObservableObject {
     /// 暂停时清掉时钟，恢复时不会因为 lastDate 过期而跳一大步
     func pauseClock() {
         lastDate = nil
+    }
+
+    /// popover 重新打开时，把物理快进到当前时刻。
+    /// 关闭期间物理是停的，而暂停那一刻竖杠往往还是平的（选完时长立刻就关了 popover），
+    /// 不快进的话每次打开都要先花一两百毫秒从 base 弹起来，看着就是「先空一下再跳起来」。
+    /// 波形本身是绝对时间的函数，所以只需要把弹簧状态追上去。
+    func warmUp(to now: Date, seconds: Double = 1.2) {
+        let step = 1.0 / 60.0
+        var t = now.addingTimeInterval(-seconds)
+        lastDate = t
+        while t < now {
+            t = t.addingTimeInterval(step)
+            advance(to: t)
+        }
+        lastDate = nil          // 让真正的第一帧 dt = 0，不受快进末尾时刻影响
     }
 
     /// 画竖杠。放在这里而不是视图里，是为了让画布子树不依赖任何每秒变化的视图参数
@@ -171,7 +187,7 @@ final class BarAnimator: ObservableObject {
 
     /// 由 TimelineView 按显示器刷新节奏推进，date 用它给的时间戳而不是 Date()
     func advance(to now: Date) {
-        let dt = min(1.0 / 30.0, now.timeIntervalSince(lastDate ?? now))
+        let dt = max(0, min(1.0 / 30.0, now.timeIntervalSince(lastDate ?? now)))
         lastDate = now
         let t = CGFloat(now.timeIntervalSinceReferenceDate)
         let h = CGFloat(dt)
@@ -321,10 +337,21 @@ struct FocusDurationPicker: View {
                 animator.pauseClock()
             }
             // .transient popover 关闭时不会触发 onDisappear，只能靠 NSPopover 通知来暂停，
-            // 否则 TimelineView 会在 popover 关着的时候继续按刷新率空转
-            .onReceive(NotificationCenter.default.publisher(for: NSPopover.didShowNotification)) { _ in
-                animator.pauseClock()
+            // 否则 TimelineView 会在 popover 关着的时候继续按刷新率空转。
+            //
+            // 用 willShow 而不是 didShow：didShow 要等 popover 的展开动画放完才发，
+            // 实测比 willShow 晚 520ms —— 那段时间画面停在关闭前的最后一帧上不动，
+            // 看起来就是「打开后先静止半秒，然后突然跳起来」。
+            .onReceive(NotificationCenter.default.publisher(for: NSPopover.willShowNotification)) { _ in
+                animator.warmUp(to: Date())
                 popoverOpen = true
+            }
+            // 兜底：万一 willShow 没收到（幂等，warmUp 只在还没放行时才有意义）
+            .onReceive(NotificationCenter.default.publisher(for: NSPopover.didShowNotification)) { _ in
+                if !popoverOpen {
+                    animator.warmUp(to: Date())
+                    popoverOpen = true
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSPopover.didCloseNotification)) { _ in
                 popoverOpen = false
