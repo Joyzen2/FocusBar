@@ -3,3 +3,4 @@
 "FBPopoverView.quit.label" = "Quit";
 "FBTimer.finish.title" = "Focus finished";
 "FBTimer.finish.body" = "Time's up. Take a break!";
+"FBPopoverView.endFocus.label" = "End focus";

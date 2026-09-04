@@ -6,7 +6,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-SRC="design-assets/app-icon-dark-1024.png"      # 换成 -light- 即可切浅色版
+SRC="design-assets/app-icon-light-1024.png"    # 换成 -dark- 即可切深色版
 DEST="FocusBar/Assets.xcassets/AppIcon.appiconset"
 
 [ -f "$SRC" ] || { echo "✗ 找不到母版 $SRC"; exit 1; }

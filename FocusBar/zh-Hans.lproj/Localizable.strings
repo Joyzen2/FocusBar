@@ -3,3 +3,4 @@
 "FBPopoverView.quit.label" = "退出";
 "FBTimer.finish.title" = "专注结束";
 "FBTimer.finish.body" = "时间到了，休息一下吧！";
+"FBPopoverView.endFocus.label" = "结束专注";

@@ -2,6 +2,9 @@ import SwiftUI
 import AVFoundation
 import AppKit
 
+/// 番茄红：菜单栏红线、顶部读数、结束按钮共用同一个色
+let focusRed = Color(red: 0.91, green: 0.23, blue: 0.16)
+
 /// 钢琴音：播放真实采样 wav（大调音阶 C3 起，25 个音）
 final class PianoSynth: ObservableObject {
     private let noteNames = [
@@ -137,7 +140,7 @@ final class BarAnimator: ObservableObject {
             var w: CGFloat = 2
 
             if isRunning && hoverX == nil && i == redIdx {
-                color = Color(red: 0.91, green: 0.23, blue: 0.16)
+                color = focusRed
                 w = 4
             } else if let hx = hoverX, abs(x - hx) < span * 0.75 {
                 w = 4
@@ -285,6 +288,15 @@ struct FocusDurationPicker: View {
     @StateObject private var piano = PianoSynth()
     @State private var lastPlayedIdx = -1
     @State private var popoverOpen = false
+    @State private var editingTime = false
+    @State private var timeText = ""
+    @FocusState private var timeFieldFocused: Bool
+
+    /// 未开始时鼠标移到数字上就可以直接键入分钟数
+    private var canEditTime: Bool { !isRunning && editingTime }
+
+    /// 运行中把鼠标移到竖杠区域 —— 这时人想做的是结束，不是选时长
+    private var showEndButton: Bool { isRunning && isHovering }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -293,29 +305,100 @@ struct FocusDurationPicker: View {
                     .font(.system(size: 13))
                     .foregroundColor(.secondary)
                 Spacer()
-                Text(topText)
-                    .font(topFont)
-                    .foregroundColor(topColor)
-                    .animation(.easeOut(duration: 0.12), value: isHovering)
+                // ZStack 是稳定容器，两个子视图靠透明度互换。
+                // 不能用 Group —— Group 会把修饰符分别套到每个子视图上，
+                // Text / TextField 一切换 hover 追踪就断了。
+                // 固定宽度也是必需的，否则「45」和「120:00」宽度不同会让布局跳。
+                ZStack(alignment: .trailing) {
+                    Text(topText)
+                        .font(topFont)
+                        .foregroundColor(topColor)
+                        .opacity(canEditTime ? 0 : 1)
+                        .animation(.easeOut(duration: 0.12), value: isHovering)
+                    if canEditTime {
+                        TextField("", text: $timeText)
+                            .textFieldStyle(.plain)
+                            .font(topFont)
+                            .foregroundColor(focusRed)
+                            .multilineTextAlignment(.trailing)
+                            .focused($timeFieldFocused)
+                            .onSubmit { commitTime(start: true) }
+                            .onExitCommand { cancelTimeEdit() }
+                    }
+                }
+                .frame(width: 82, alignment: .trailing)
+                .contentShape(Rectangle())
+                .onHover { inside in
+                    if inside {
+                        beginTimeEdit()
+                    } else if editingTime {
+                        // 只在真的处于编辑态时才收值。之前这里判断的是 !timeFieldFocused，
+                        // 但 beginTimeEdit 刚把焦点给了输入框，那个条件永远为假，
+                        // 编辑态就卡住再也退不出来，顶部数字也不再跟着竖杠 hover 走了。
+                        // 反过来也不能无条件 commit —— 运行中鼠标路过时 timeText 是上一次
+                        // 编辑的陈旧值，会把 minutes 改掉。
+                        commitTime(start: false)
+                    }
+                }
+                .onChange(of: timeFieldFocused) { focused in
+                    // 点到别处失焦：把已经输入的值收下来，但不自动开始
+                    if !focused && editingTime { commitTime(start: false) }
+                }
+                .onChange(of: isRunning) { running in
+                    if running { cancelTimeEdit() }
+                }
                 Text(NSLocalizedString("FBPopoverView.min", comment: "min"))
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
 
-            BarCanvas(animator: animator, paused: !popoverOpen, tickLabels: tickLabels)
-                .equatable()
-                .frame(height: 70)
+            ZStack {
+                BarCanvas(animator: animator, paused: !popoverOpen, tickLabels: tickLabels)
+                    .equatable()
+                    .opacity(showEndButton ? 0 : 1)
+                    .scaleEffect(showEndButton ? 0.985 : 1)
+                    .allowsHitTesting(!showEndButton)
+
+                if isRunning {
+                    Button {
+                        onPick(0)       // 运行中 onPick 的参数被忽略，语义就是「结束」
+                    } label: {
+                        Text(NSLocalizedString("FBPopoverView.endFocus.label", comment: "End focus"))
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 30)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                    .fill(focusRed)
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(showEndButton ? 1 : 0)
+                    .scaleEffect(showEndButton ? 1 : 0.96)
+                    .allowsHitTesting(showEndButton)
+                }
+            }
+            .frame(height: 70)
+            .animation(.easeOut(duration: 0.18), value: showEndButton)
             .contentShape(Rectangle())
             .onContinuousHover { phase in
                 switch phase {
                 case .active(let location):
                     isHovering = true
-                    animator.hoverX = location.x
-                    hoverMinute = animator.minute(atX: location.x)
-                    let idx = animator.index(atX: location.x)
-                    if idx != lastPlayedIdx {
-                        lastPlayedIdx = idx
-                        piano.play(barIndex: idx, volume: 0.1)
+                    if isRunning {
+                        // 运行中鼠标移进来是为了结束，不是选时长：不做高斯扫动、不响钢琴音。
+                        // 波浪在按钮底下继续跑，所以淡回来的时候是接着动的，不会卡一下。
+                        animator.hoverX = nil
+                        lastPlayedIdx = -1
+                    } else {
+                        animator.hoverX = location.x
+                        hoverMinute = animator.minute(atX: location.x)
+                        let idx = animator.index(atX: location.x)
+                        if idx != lastPlayedIdx {
+                            lastPlayedIdx = idx
+                            piano.play(barIndex: idx, volume: 0.1)
+                        }
                     }
                 case .ended:
                     isHovering = false
@@ -325,6 +408,7 @@ struct FocusDurationPicker: View {
             }
             .gesture(
                 SpatialTapGesture().onEnded { value in
+                    guard !isRunning else { return }   // 运行中由「结束专注」按钮接管
                     onPick(animator.minute(atX: value.location.x))
                 }
             )
@@ -366,20 +450,38 @@ struct FocusDurationPicker: View {
         }
     }
 
+    private func beginTimeEdit() {
+        guard !isRunning, !editingTime else { return }
+        timeText = "\(minutes)"
+        editingTime = true
+        timeFieldFocused = true
+    }
+
+    /// start 为真表示按了回车 —— 直接用输入值开始，否则只是把值收下来
+    private func commitTime(start: Bool) {
+        let trimmed = timeText.trimmingCharacters(in: .whitespaces)
+        let picked = Int(trimmed).map { min(120, max(1, $0)) }
+        if let picked { minutes = picked }
+        editingTime = false
+        timeFieldFocused = false
+        if start, let picked { onPick(picked) }
+    }
+
+    private func cancelTimeEdit() {
+        editingTime = false
+        timeFieldFocused = false
+    }
+
     private var topText: String {
-        if isRunning && !isHovering {
+        if isRunning {          // 运行中恒显示倒计时，hover 不再改写它
             let s = max(0, Int(ceil(remainingSeconds)))
             return String(format: "%d:%02d", s / 60, s % 60)
         }
         return "\(isHovering ? hoverMinute : minutes)"
     }
 
-    private var topColor: Color {
-        if isRunning && !isHovering {
-            return Color(red: 0.91, green: 0.23, blue: 0.16)   // 番茄红（与菜单栏图标呼应）
-        }
-        return isHovering ? .primary : .accentColor
-    }
+    /// 读数恒为番茄红 —— 未开始、hover 预览、运行中都一样，不再在黑色和强调色之间跳
+    private var topColor: Color { focusRed }
 
     private var topFont: Font {
         (isHovering || isRunning) ? .title2.weight(.heavy) : .title3.bold()

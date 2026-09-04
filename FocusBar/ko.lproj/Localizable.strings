@@ -3,3 +3,4 @@
 "FBPopoverView.quit.label" = "종료";
 "FBTimer.finish.title" = "집중 종료";
 "FBTimer.finish.body" = "시간이 끝났습니다. 잠시 쉬세요!";
+"FBPopoverView.endFocus.label" = "집중 종료";
