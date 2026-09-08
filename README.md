@@ -54,9 +54,9 @@ FocusBar/
 └── FocusBar/
     ├── App.swift            菜单栏状态项 + popover 宿主 + 时间胶囊绘制
     ├── Timer.swift          倒计时核心（用绝对结束时间，睡眠唤醒后不漂）
-    ├── View.swift           popover 界面 + 竖杠物理动画 + 钢琴音
+    ├── View.swift           popover 界面 + 琴键物理动画 + 钢琴音
     ├── Notifications.swift  系统通知
-    ├── piano/               25 个钢琴采样（16-bit 单声道 44.1kHz）
+    ├── piano/               42 个钢琴采样，C3–F6 每个半音一个（16-bit 单声道 44.1kHz）
     ├── Assets.xcassets      应用图标 / 菜单栏图标（菜单栏图标含浅深两套）
     └── en·ko·zh-Hans.lproj  本地化
 ```
@@ -71,11 +71,26 @@ FocusBar/
 
 **渲染走 `TimelineView(.animation)`**，跟显示器刷新对齐，且只让画布子树重绘。画布单独抽成 `Equatable` 的 `BarCanvas`，挡住每秒倒计时对它的重算。
 
+**黑键白键都是各自的真实录音**，一共 42 个采样。早先只有 25 个自然音，黑键靠
+`AVAudioPlayer.rate = 2^(1/12)` 变速冒充升半音 —— 音高是准的，但变速会把共振峰
+一起向上搬，低音区黑键听着发紧，而且音长短 6%。现在每个半音都有自己的录音，
+那段变速代码已经删掉。
+
 **暂停用 `NSPopover.willShowNotification` 而不是 `didShow`** —— 后者要等 popover 展开动画放完才发（实测晚 520ms），那段时间画面是静止的。
 
 ## 致谢
 
 基于 [ivoronin/TomatoBar](https://github.com/ivoronin/TomatoBar)（MIT）精简改造而来。
+
+钢琴采样来自 [University of Iowa Electronic Music Studios](https://theremin.music.uiowa.edu/MIS.html)
+的 Musical Instrument Samples 库（Steinway & Sons model B，2001 年 11 月录制，
+演奏 Evan Mazunik，制作 Lawrence Fritts）。原文授权：
+
+> since 1997, these recordings have been freely available on this website
+> and may be downloaded and used for any projects, without restrictions
+
+本项目取其 `ff` 力度层的 C3–F6 共 42 个音，做了单声道化、去除起音前静音、
+截到 1.55 秒并加尾部淡出、逐音峰值归一化。**未做任何变速、变调或均衡处理。**
 
 ## 许可
 
