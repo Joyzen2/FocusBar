@@ -604,7 +604,7 @@ struct FocusDurationPicker: View {
                 // 固定宽度也是必需的，否则「45」和「120:00」宽度不同会让布局跳。
                 ZStack(alignment: .trailing) {
                     // 隐形基准：永远按最大的那个字号占位。
-                    // hover 时字号 15→17，HStack 行高跟着变，NSPopover 又是自适应内容高度的，
+                    // hover 时字号 15→17，HStack 行高跟着变，面板高度又是按内容算的，
                     // 表现出来就是整个面板上下抽一下。用一个不可见的最大字号 Text 把行高钉死，
                     // 字还是各自原生尺寸渲染（不是 scaleEffect 缩放），不会发虚。
                     Text("0")
@@ -722,24 +722,16 @@ struct FocusDurationPicker: View {
                 popoverOpen = false
                 animator.pauseClock()
             }
-            // .transient popover 关闭时不会触发 onDisappear，只能靠 NSPopover 通知来暂停，
-            // 否则 TimelineView 会在 popover 关着的时候继续按刷新率空转。
+            // 面板关闭时不会触发 onDisappear（窗口只是 orderOut，视图树还在），
+            // 只能靠通知来暂停，否则 TimelineView 会在面板关着的时候继续按刷新率空转。
             //
-            // 用 willShow 而不是 didShow：didShow 要等 popover 的展开动画放完才发，
-            // 实测比 willShow 晚 520ms —— 那段时间画面停在关闭前的最后一帧上不动，
-            // 看起来就是「打开后先静止半秒，然后突然跳起来」。
-            .onReceive(NotificationCenter.default.publisher(for: NSPopover.willShowNotification)) { _ in
+            // 通知在窗口真正显示之前就发出，动画要在第一帧之前放行 —— 晚了画面会
+            // 停在关闭前的最后一帧上，看起来就是「打开后先静止一下，然后突然跳起来」。
+            .onReceive(NotificationCenter.default.publisher(for: .fbPanelWillShow)) { _ in
                 animator.warmUp(to: Date())
                 popoverOpen = true
             }
-            // 兜底：万一 willShow 没收到（幂等，warmUp 只在还没放行时才有意义）
-            .onReceive(NotificationCenter.default.publisher(for: NSPopover.didShowNotification)) { _ in
-                if !popoverOpen {
-                    animator.warmUp(to: Date())
-                    popoverOpen = true
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSPopover.didCloseNotification)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .fbPanelDidClose)) { _ in
                 popoverOpen = false
                 animator.pauseClock()
             }
